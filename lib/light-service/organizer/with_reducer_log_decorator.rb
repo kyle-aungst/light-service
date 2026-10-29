@@ -58,6 +58,7 @@ module LightService
         logger.info("[LightService] - executing <#{action}>")
         log_expects(action)
         log_promises(action)
+        log_allows(action)
         logger.info("[LightService] -     keys in context: "\
                     "#{extract_keys(context.keys)}")
       end
@@ -74,6 +75,13 @@ module LightService
 
         logger.info("[LightService] -   promises: " \
                     "#{extract_keys(action.promises)}")
+      end
+
+      def log_allows(action)
+        return unless defined?(action.allows) && action.allows.any?
+
+        logger.info("[LightService] -   allows: " \
+                    "#{extract_keys(action.allows)}")
       end
 
       def extract_keys(keys)

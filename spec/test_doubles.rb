@@ -230,6 +230,37 @@ module TestDoubles
     end
   end
 
+  class MakesLatteMaybeSweetAction
+    extend LightService::Action
+    expects :coffee, :milk
+    promises :latte
+    allows :sugar
+
+    executed do |context|
+      context.latte = "#{context.coffee} - with #{context.milk} milk"
+      context.sugar = "brown sugar" if context.milk == "oat"
+    end
+  end
+
+  class ReadsSugarAction
+    extend LightService::Action
+    expects :latte
+    allows :sugar
+
+    executed do |context|
+      context.latte += " and #{context.sugar}" if context.sugar
+    end
+  end
+
+  class MakesLatteMaybeSweetOrganizer
+    extend LightService::Organizer
+
+    def self.call(milk)
+      with(:coffee => "espresso", :milk => milk)
+        .reduce(MakesLatteMaybeSweetAction, ReadsSugarAction)
+    end
+  end
+
   class MakesCappuccinoAddsTwo
     extend LightService::Organizer
 

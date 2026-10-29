@@ -24,6 +24,8 @@ LightService is a powerful and flexible service skeleton framework with an empha
 - [Before and After Action Hooks](#before-and-after-action-hooks)
 - [Expects and Promises](#expects-and-promises)
   - [Default values for optional Expected keys](#default-values-for-optional-expected-keys)
+  - [Allowed keys](#allowed-keys)
+  - [Strict keys](#strict-keys)
 - [Key Aliases](#key-aliases)
 - [Logging](#logging)
 - [Error Codes](#error-codes)
@@ -643,6 +645,70 @@ end
 
 You can then call an action or organizer that uses an action with defaults without specifying
 the expected key that has a default.
+
+### Allowed keys
+
+Sometimes an action may or may not set a key. Promising it means the action has to set it, even
+to `nil`, on every path. Expecting it with a default means it's always in the context, even when
+nothing set it. The `allows` macro lists keys an action may read or set, with no checks:
+
+```ruby
+class AppliesCoupon
+  extend LightService::Action
+  expects :order
+  allows :discount
+
+  executed do |ctx|
+    next unless ctx.order.coupon_code
+
+    ctx.discount = Discount.find_by(:code => ctx.order.coupon_code)
+  end
+end
+
+class CalculatesTotal
+  extend LightService::Action
+  expects :order
+  allows :discount
+  promises :total
+
+  executed do |ctx|
+    ctx.total = ctx.order.subtotal - (ctx.discount&.amount || 0)
+  end
+end
+```
+
+Allowed keys get accessors like expected and promised keys. If an allowed key isn't in the
+context, its reader returns `nil` and doesn't add the key. If no action sets it, the key isn't in
+the context for later actions or in the organizer's result. When a key is also expected or
+promised, those checks still apply.
+
+### Strict keys
+
+By default an action can read and write any key in the context, declared or not. With strict keys
+on, an action's `executed` block raises `LightService::UndeclaredKeyError` when it reads or writes
+a key it doesn't declare with `expects`, `promises` or `allows`:
+
+```ruby
+LightService::Configuration.strict_keys = true
+
+class CalculatesTax
+  extend LightService::Action
+  expects :order
+  promises :tax
+
+  executed do |ctx|
+    ctx.tax = ctx.order.total * ctx[:tax_rate]
+    # => LightService::UndeclaredKeyError: CalculatesTax used :tax_rate without declaring it
+    #    with expects, promises or allows
+  end
+end
+```
+
+Reads and writes through the accessors, `[]`, `[]=`, `fetch`, `key?`, `dig`, `values_at`,
+`delete` and `merge!` are checked. Iterating over the context isn't. Only code inside an action's
+`executed` block is checked: organizer steps (`reduce_if` conditions, `add_to_context`, `iterate`,
+`with_callback` steps), before and after hooks and code outside actions aren't. With strict keys
+off, actions run as before.
 
 ## Key Aliases
 The `aliases` macro sets up pairs of keys and aliases in an organizer. Actions can access the context using the aliases.

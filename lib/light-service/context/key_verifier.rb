@@ -90,11 +90,12 @@ module LightService
 
     class ReservedKeysVerifier < KeyVerifier
       def violated_keys
-        (action.promised_keys + action.expected_keys) & reserved_keys
+        [*action.promised_keys, *action.expected_keys, *action.allowed_keys] &
+          reserved_keys
       end
 
       def error_message
-        "promised or expected keys cannot be a " \
+        "promised, expected or allowed keys cannot be a " \
           "reserved key: [#{format_keys(violated_keys)}]"
       end
 
