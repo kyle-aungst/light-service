@@ -11,6 +11,7 @@ module LightService
       base_class.extend Macros
     end
 
+    # rubocop:disable Metrics/ModuleLength
     module Macros
       def expects(*args)
         if expect_key_having_default?(args)
@@ -26,12 +27,20 @@ module LightService
         promised_keys.concat(args)
       end
 
+      def allows(*args)
+        allowed_keys.concat(args)
+      end
+
       def expected_keys
         @expected_keys ||= []
       end
 
       def promised_keys
         @promised_keys ||= []
+      end
+
+      def allowed_keys
+        @allowed_keys ||= []
       end
 
       def executed(*_args, &block)
@@ -43,7 +52,7 @@ module LightService
           action_context.current_action = self
 
           Context::KeyVerifier.verify_keys(action_context, self) do
-            action_context.define_accessor_methods_for_keys(all_keys)
+            define_accessor_methods(action_context)
 
             catch(:jump_when_failed) do
               call_before_action(action_context)
@@ -71,15 +80,33 @@ module LightService
 
       private
 
-      def execute_action(context)
+      def execute_action(context, &block)
         if around_action_context?(context)
-          context.around_actions.call(context) do
-            yield(context)
-            context
+          without_key_checks(context) do
+            context.around_actions.call(context) do
+              execute_block(context, &block)
+              context
+            end
           end
         else
+          execute_block(context, &block)
+        end
+      end
+
+      def execute_block(context)
+        return yield(context) unless Configuration.strict_keys
+
+        context.restrict_keys(all_keys + allowed_keys, self) do
           yield(context)
         end
+      end
+
+      # For code an action runs outside its executed block, which isn't
+      # checked against the keys of an action that runs this one
+      def without_key_checks(context, &block)
+        return yield unless Configuration.strict_keys && context.is_a?(Context)
+
+        context.restrict_keys(nil, &block)
       end
 
       def available_defaults
@@ -96,6 +123,10 @@ module LightService
       end
 
       def create_action_context(context)
+        without_key_checks(context) { assign_defaults(context) }
+      end
+
+      def assign_defaults(context)
         usable_defaults(context).each do |ctx_key, default|
           context[ctx_key] = extract_default(default, context)
         end
@@ -105,6 +136,13 @@ module LightService
 
       def all_keys
         expected_keys + promised_keys
+      end
+
+      def define_accessor_methods(context)
+        context.define_accessor_methods_for_keys(all_keys)
+        return if allowed_keys.empty?
+
+        context.define_allowed_accessor_methods_for_keys(allowed_keys)
       end
 
       def missing_expected_keys(context)
@@ -134,8 +172,10 @@ module LightService
       def invoke_callbacks(callbacks, context)
         return context unless callbacks
 
-        callbacks.each do |cb|
-          cb.call(context)
+        without_key_checks(context) do
+          callbacks.each do |cb|
+            cb.call(context)
+          end
         end
 
         context
@@ -146,5 +186,6 @@ module LightService
           context.around_actions.respond_to?(:call)
       end
     end
+    # rubocop:enable Metrics/ModuleLength
   end
 end

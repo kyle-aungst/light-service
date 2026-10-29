@@ -33,13 +33,17 @@ module LightService
         @context.around_actions ||= around_each_handler
         actions.flatten!
 
-        actions.each_with_object(context) do |action, current_context|
-          invoke_action(current_context, action)
-        rescue FailWithRollbackError
-          reduce_rollback(actions)
-        ensure
-          # For logging
-          yield(current_context, action) if block_given?
+        # Organizer steps run from an action's executed block aren't checked
+        # against that action's keys
+        @context.restrict_keys(nil) do
+          actions.each_with_object(context) do |action, current_context|
+            invoke_action(current_context, action)
+          rescue FailWithRollbackError
+            reduce_rollback(actions)
+          ensure
+            # For logging
+            yield(current_context, action) if block_given?
+          end
         end
       end
 

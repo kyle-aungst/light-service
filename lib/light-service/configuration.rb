@@ -1,7 +1,7 @@
 module LightService
   class Configuration
     class << self
-      attr_accessor :capture_errors
+      attr_accessor :capture_errors, :strict_keys
       attr_writer :logger, :localization_adapter, :locale
 
       def logger

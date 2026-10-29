@@ -38,7 +38,7 @@ describe ":expects macro" do
 
   context "when a reserved key is listed as an expected key" do
     it "raises an error indicating a reserved key is expected" do
-      exception_msg = "promised or expected keys cannot be a reserved key: " \
+      exception_msg = "promised, expected or allowed keys cannot be a reserved key: " \
                       "[:message]"
       expect do
         TestDoubles::MakesTeaExpectingReservedKey.execute(:tea => "black",
@@ -48,7 +48,7 @@ describe ":expects macro" do
     end
 
     it "raises an error indicating that multiple reserved keys are expected" do
-      exception_msg = "promised or expected keys cannot be a reserved key: " \
+      exception_msg = "promised, expected or allowed keys cannot be a reserved key: " \
                       "[:message, :error_code, :current_action]"
       expect do
         TestDoubles::MakesTeaExpectingMultipleReservedKeys
