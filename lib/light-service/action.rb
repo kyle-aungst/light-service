@@ -11,6 +11,7 @@ module LightService
       base_class.extend Macros
     end
 
+    # rubocop:disable Metrics/ModuleLength
     module Macros
       def expects(*args)
         if expect_key_having_default?(args)
@@ -26,12 +27,20 @@ module LightService
         promised_keys.concat(args)
       end
 
+      def allows(*args)
+        allowed_keys.concat(args)
+      end
+
       def expected_keys
         @expected_keys ||= []
       end
 
       def promised_keys
         @promised_keys ||= []
+      end
+
+      def allowed_keys
+        @allowed_keys ||= []
       end
 
       def executed(*_args, &block)
@@ -43,7 +52,7 @@ module LightService
           action_context.current_action = self
 
           Context::KeyVerifier.verify_keys(action_context, self) do
-            action_context.define_accessor_methods_for_keys(all_keys)
+            define_accessor_methods(action_context)
 
             catch(:jump_when_failed) do
               call_before_action(action_context)
@@ -107,6 +116,13 @@ module LightService
         expected_keys + promised_keys
       end
 
+      def define_accessor_methods(context)
+        context.define_accessor_methods_for_keys(all_keys)
+        return if allowed_keys.empty?
+
+        context.define_allowed_accessor_methods_for_keys(allowed_keys)
+      end
+
       def missing_expected_keys(context)
         expected_keys - context.keys
       end
@@ -146,5 +162,6 @@ module LightService
           context.around_actions.respond_to?(:call)
       end
     end
+    # rubocop:enable Metrics/ModuleLength
   end
 end

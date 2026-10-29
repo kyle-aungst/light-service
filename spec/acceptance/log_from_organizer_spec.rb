@@ -87,6 +87,19 @@ describe "Logs from organizer" do
     end
   end
 
+  context "when an action allows keys" do
+    subject(:log_message) do
+      collects_log do
+        TestDoubles::MakesLatteMaybeSweetOrganizer.call("2%")
+      end
+    end
+
+    it "lists the keys actions are allowing" do
+      organizer_log_message = "[LightService] -   allows: :sugar"
+      expect(log_message).to include(organizer_log_message)
+    end
+  end
+
   context "when the context has failed" do
     subject(:log_message) do
       collects_log do

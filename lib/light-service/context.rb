@@ -136,6 +136,18 @@ module LightService
       end
     end
 
+    # Readers for allowed keys don't add the key when it's missing, so they
+    # replace readers an earlier action defined for expected or promised keys
+    def define_allowed_accessor_methods_for_keys(keys)
+      keys.each do |key|
+        next if respond_to?(key.to_sym) &&
+                !singleton_class.method_defined?(key, false)
+
+        define_singleton_method(key.to_s) { self[key] }
+        define_singleton_method("#{key}=") { |value| self[key] = value }
+      end
+    end
+
     def assign_aliases(aliases)
       @aliases = aliases
 

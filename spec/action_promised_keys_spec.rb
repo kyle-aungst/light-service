@@ -89,7 +89,7 @@ describe ":promises macro" do
 
   context "when a reserved key is listed as a promised key" do
     it "raises error indicating a reserved key has been promised" do
-      exception_msg = "promised or expected keys cannot be a reserved key: "\
+      exception_msg = "promised, expected or allowed keys cannot be a reserved key: "\
                       "[:message]"
       expect do
         TestDoubles::MakesTeaPromisingReservedKey.execute(:tea => "black")
@@ -98,7 +98,7 @@ describe ":promises macro" do
     end
 
     it "raises error indicating multiple reserved keys have been promised" do
-      exception_msg = "promised or expected keys cannot be a reserved key: " \
+      exception_msg = "promised, expected or allowed keys cannot be a reserved key: " \
                       "[:message, :error_code, :current_action]"
       expect do
         ctx = { :tea => "black" }
